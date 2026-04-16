@@ -9,7 +9,7 @@ pipeline {
     environment {
         APP_PORT = '3000'
         NODE_ENV = 'production'
-        APP_DIR  = '/var/lib/jenkins/react-cicd-app'
+        APP_DIR  = '/var/lib/jenkins/trend-cicd-app'
     }
 
     stages {
