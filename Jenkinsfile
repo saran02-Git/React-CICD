@@ -9,7 +9,7 @@ pipeline {
     environment {
         APP_PORT = '4000'
         NODE_ENV = 'production'
-        APP_DIR  = '/home/ubuntu/react-cicd-app'
+        APP_DIR  = '/var/lib/jenkins/react-cicd-app'
     }
 
     stages {
@@ -40,20 +40,16 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    # Target app folder (Jenkins workspace‑ku velila, same user‑ku owned nu assume)
                     mkdir -p "$APP_DIR"
 
-                    # Code copy from Jenkins workspace → app dir
                     rsync -a --delete ./ "$APP_DIR/"
 
                     cd "$APP_DIR"
 
-                    # Old process stop pannunga (if running)
                     if pgrep -f "node index.js" > /dev/null 2>&1; then
                       pkill -f "node index.js"
                     fi
 
-                    # Background‑la new process start
                     JENKINS_NODE_COOKIE=dontKillMe nohup env PORT="$APP_PORT" NODE_ENV="$NODE_ENV" node index.js > app.log 2>&1 &
                 '''
             }
