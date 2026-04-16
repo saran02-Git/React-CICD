@@ -9,6 +9,7 @@ pipeline {
     environment {
         APP_PORT = '4000'
         NODE_ENV = 'production'
+        APP_DIR  = '/home/ubuntu/react-cicd-app'
     }
 
     stages {
@@ -26,18 +27,37 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh 'npm test'
+                // Tests illa na, temporary‑aa "npm test" instead of "echo"
+                sh '''
+                    if [ -f package.json ] && cat package.json | grep -q '"test"'; then
+                      npm test
+                    else
+                      echo "No test script defined, skipping tests"
+                    fi
+                '''
             }
         }
 
         stage('Deploy') {
             steps {
                 sh '''
+                    # Target app folder (Jenkins workspace‑ku velila)
+                    sudo mkdir -p $APP_DIR
+                    sudo chown -R ubuntu:ubuntu $APP_DIR
+
+                    # Code copy
+                    rsync -a --delete ./ $APP_DIR/
+
+                    cd $APP_DIR
+
+                    # Old process stop pannunga
                     if pgrep -f "node index.js" > /dev/null; then
                       pkill -f "node index.js"
                     fi
 
-                    nohup env PORT=$APP_PORT NODE_ENV=$NODE_ENV node index.js > app.log 2>&1 &
+                    # Background‑la new process start
+                    # JENKINS_NODE_COOKIE=dontKillMe → build mudinjalum kill panna koodadhu
+                    JENKINS_NODE_COOKIE=dontKillMe nohup env PORT=$APP_PORT NODE_ENV=$NODE_ENV node index.js > app.log 2>&1 &
                 '''
             }
         }
@@ -45,8 +65,7 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                    sleep 5
-                    curl -f http://localhost:$APP_PORT
+                    curl -f http://localhost:$APP_PORT || (echo "Health check failed" && exit 1)
                 '''
             }
         }
@@ -54,13 +73,10 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline completed successfully.'
+            echo 'Pipeline completed successfully. App is running on port 4000.'
         }
         failure {
-            echo 'Pipeline failed. Check Console Output.'
-        }
-        always {
-            deleteDir()
+            echo 'Pipeline failed. Check Console Output in Jenkins.'
         }
     }
 }
