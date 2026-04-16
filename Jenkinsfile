@@ -27,19 +27,23 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh 'npm install'
+                dir('node-ci-demo') {
+                    sh 'npm install'
+                }
             }
         }
 
         stage('Test (optional)') {
             steps {
-                sh '''
-                    if grep -q '"test"' package.json; then
-                      npm test
-                    else
-                      echo "No tests, skipping"
-                    fi
-                '''
+                dir('node-ci-demo') {
+                    sh '''
+                        if grep -q '"test"' package.json; then
+                          npm test
+                        else
+                          echo "No tests, skipping"
+                        fi
+                    '''
+                }
             }
         }
 
@@ -48,11 +52,11 @@ pipeline {
                 sh '''
                     mkdir -p "$APP_DIR"
 
-                    rsync -a --delete ./ "$APP_DIR/"
+                    rsync -a --delete ./node-ci-demo/ "$APP_DIR/"
 
                     cd "$APP_DIR"
 
-                    # kill old app if running
+                    # kill old app
                     if pgrep -f "node index.js" > /dev/null; then
                       pkill -f "node index.js"
                     fi
