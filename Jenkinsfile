@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-        APP_PORT = '4000'
+        APP_PORT = '3000'
         NODE_ENV = 'production'
         APP_DIR  = '/var/lib/jenkins/react-cicd-app'
     }
@@ -67,7 +67,7 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline completed successfully. App is running on port 4000.'
+            echo 'Pipeline completed successfully. App is running on port 3000.'
         }
         failure {
             echo 'Pipeline failed. Check Console Output in Jenkins.'
