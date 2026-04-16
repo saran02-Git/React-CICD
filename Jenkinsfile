@@ -27,7 +27,6 @@ pipeline {
 
         stage('Test') {
             steps {
-                // Tests illa na, temporary‑aa "npm test" instead of "echo"
                 sh '''
                     if [ -f package.json ] && cat package.json | grep -q '"test"'; then
                       npm test
@@ -41,23 +40,21 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    # Target app folder (Jenkins workspace‑ku velila)
-                    sudo mkdir -p $APP_DIR
-                    sudo chown -R ubuntu:ubuntu $APP_DIR
+                    # Target app folder (Jenkins workspace‑ku velila, same user‑ku owned nu assume)
+                    mkdir -p "$APP_DIR"
 
-                    # Code copy
-                    rsync -a --delete ./ $APP_DIR/
+                    # Code copy from Jenkins workspace → app dir
+                    rsync -a --delete ./ "$APP_DIR/"
 
-                    cd $APP_DIR
+                    cd "$APP_DIR"
 
-                    # Old process stop pannunga
-                    if pgrep -f "node index.js" > /dev/null; then
+                    # Old process stop pannunga (if running)
+                    if pgrep -f "node index.js" > /dev/null 2>&1; then
                       pkill -f "node index.js"
                     fi
 
                     # Background‑la new process start
-                    # JENKINS_NODE_COOKIE=dontKillMe → build mudinjalum kill panna koodadhu
-                    JENKINS_NODE_COOKIE=dontKillMe nohup env PORT=$APP_PORT NODE_ENV=$NODE_ENV node index.js > app.log 2>&1 &
+                    JENKINS_NODE_COOKIE=dontKillMe nohup env PORT="$APP_PORT" NODE_ENV="$NODE_ENV" node index.js > app.log 2>&1 &
                 '''
             }
         }
@@ -65,7 +62,8 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 sh '''
-                    curl -f http://localhost:$APP_PORT || (echo "Health check failed" && exit 1)
+                    sleep 5
+                    curl -f "http://localhost:$APP_PORT" || (echo "Health check failed" && exit 1)
                 '''
             }
         }
