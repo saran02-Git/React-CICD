@@ -13,6 +13,12 @@ pipeline {
     }
 
     stages {
+        stage('Clean Workspace') {
+            steps {
+                deleteDir()
+            }
+        }
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -25,13 +31,13 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Test (optional)') {
             steps {
                 sh '''
-                    if [ -f package.json ] && cat package.json | grep -q '"test"'; then
+                    if grep -q '"test"' package.json; then
                       npm test
                     else
-                      echo "No test script defined, skipping tests"
+                      echo "No tests, skipping"
                     fi
                 '''
             }
@@ -46,20 +52,22 @@ pipeline {
 
                     cd "$APP_DIR"
 
-                    if pgrep -f "node index.js" > /dev/null 2>&1; then
+                    # kill old app if running
+                    if pgrep -f "node index.js" > /dev/null; then
                       pkill -f "node index.js"
                     fi
 
-                    JENKINS_NODE_COOKIE=dontKillMe nohup env PORT="$APP_PORT" NODE_ENV="$NODE_ENV" node index.js > app.log 2>&1 &
+                    # start app
+                    JENKINS_NODE_COOKIE=dontKillMe nohup env PORT=$APP_PORT NODE_ENV=$NODE_ENV node index.js > app.log 2>&1 &
                 '''
             }
         }
 
-        stage('Verify Deployment') {
+        stage('Verify') {
             steps {
                 sh '''
                     sleep 5
-                    curl -f "http://localhost:$APP_PORT" || (echo "Health check failed" && exit 1)
+                    curl -f http://localhost:$APP_PORT || exit 1
                 '''
             }
         }
@@ -67,10 +75,10 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline completed successfully. App is running on port 3000.'
+            echo "SUCCESS ✅ App running on port 3000"
         }
         failure {
-            echo 'Pipeline failed. Check Console Output in Jenkins.'
+            echo "FAILED ❌ Check logs"
         }
     }
 }
