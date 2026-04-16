@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trend-node-deployment
+  labels:
+    app: trend-node-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: trend-node-app
+  template:
+    metadata:
+      labels:
+        app: trend-node-app
+    spec:
+      containers:
+        - name: trend-node-container
+          image: saran0702/trend-node-app:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+          env:
+            - name: PORT
+              value: "4000"
